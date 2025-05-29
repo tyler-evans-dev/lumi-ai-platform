@@ -1,373 +1,176 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Canvas } from '@react-three/fiber';
-import {
-  OrbitControls,
-  MeshDistortMaterial,
-  MeshWobbleMaterial,
-  PointMaterial,
-  Points,
-  Billboard,
-  Text
-} from '@react-three/drei';
-import * as THREE from 'three';
-import { Vector3, Color } from 'three';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 
-// Generate random particles for the orb
-const generateParticles = (count: number, radius: number) => {
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const color = new Color();
+export default function Lumi3DOrb() {
+  const [isActive, setIsActive] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  for (let i = 0; i < count; i++) {
-    // Position on sphere surface with some randomness
-    const phi = Math.random() * Math.PI * 2;
-    const theta = Math.random() * Math.PI;
-    
-    const r = radius * (0.8 + Math.random() * 0.3); // Vary radius slightly
-    
-    positions[i * 3] = r * Math.sin(theta) * Math.cos(phi);
-    positions[i * 3 + 1] = r * Math.sin(theta) * Math.sin(phi);
-    positions[i * 3 + 2] = r * Math.cos(theta);
-    
-    // Color gradient from blue to purple
-    const blueToPurple = Math.random();
-    color.setHSL(0.6 + blueToPurple * 0.1, 0.8, 0.5 + Math.random() * 0.2);
-    
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
-    
-    // Random sizes
-    sizes[i] = Math.random() * 0.5 + 0.5;
-  }
-  
-  return { positions, colors, sizes };
-};
-
-// Particles component
-const Particles = ({ count = 2000, radius = 2 }) => {
-  const pointsRef = useRef<THREE.Points>(null);
-  const { positions, colors, sizes } = useMemo(() => generateParticles(count, radius), [count, radius]);
-  
-  useFrame(({ clock }) => {
-    if (!pointsRef.current) return;
-    
-    // Rotate particles slowly
-    pointsRef.current.rotation.y = clock.getElapsedTime() * 0.05;
-    
-    // Pulse effect
-    const scale = 1 + Math.sin(clock.getElapsedTime() * 0.3) * 0.03;
-    pointsRef.current.scale.set(scale, scale, scale);
-  });
-  
-  // Create a buffer geometry with attributes
-  const geometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    return geometry;
-  }, [positions, colors, sizes]);
-  
   return (
-    <points ref={pointsRef} geometry={geometry}>
-      <PointMaterial
-        transparent
-        vertexColors
-        size={0.15}
-        sizeAttenuation={true}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-};
-
-// Orbital Ring component representing the dual AI system
-const OrbitalRing = ({ 
-  radius = 2.5, 
-  thickness = 0.05, 
-  color = new Color('#60a5fa'), 
-  rotation = [0, 0, 0], 
-  speed = 0.2,
-  particleCount = 50
-}) => {
-  const ringRef = useRef<THREE.Mesh>(null);
-  const particlesRef = useRef<THREE.Group>(null);
-  
-  // Create particles along the ring
-  const particles = useMemo(() => {
-    const temp = [];
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const size = Math.random() * 0.1 + 0.05;
-      const speed = Math.random() * 0.01 + 0.005;
-      temp.push({ position: [x, 0, z], size, speed, angle });
-    }
-    return temp;
-  }, [radius, particleCount]);
-  
-  useFrame(({ clock }) => {
-    if (ringRef.current) {
-      // Rotate the ring
-      ringRef.current.rotation.x = rotation[0];
-      ringRef.current.rotation.y = rotation[1] + clock.getElapsedTime() * speed;
-      ringRef.current.rotation.z = rotation[2];
-    }
-    
-    if (particlesRef.current) {
-      // Match particles rotation to ring
-      particlesRef.current.rotation.x = rotation[0];
-      particlesRef.current.rotation.y = rotation[1] + clock.getElapsedTime() * speed;
-      particlesRef.current.rotation.z = rotation[2];
-      
-      // Pulse effect on particles
-      const pulse = Math.sin(clock.getElapsedTime() * 2) * 0.2 + 0.8;
-      particlesRef.current.children.forEach((child, i) => {
-        const particle = particles[i];
-        if (child instanceof THREE.Mesh) {
-          child.scale.setScalar(particle.size * pulse);
-        }
-      });
-    }
-  });
-  
-  return (
-    <>
-      {/* The ring */}
-      <mesh ref={ringRef}>
-        <torusGeometry args={[radius, thickness, 16, 100]} />
-        <meshBasicMaterial color={color} transparent opacity={0.6} />
-      </mesh>
-      
-      {/* Particles along the ring */}
-      <group ref={particlesRef}>
-        {particles.map((particle, i) => (
-          <mesh key={i} position={new Vector3(...particle.position)}>
-            <sphereGeometry args={[particle.size, 8, 8]} />
-            <meshBasicMaterial color={color} transparent opacity={0.8} />
-          </mesh>
+    <div className="relative w-full h-full min-h-[300px] md:min-h-[400px] flex items-center justify-center">
+      {/* Background particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {Array.from({ length: 40 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/20"
+            style={{
+              width: `${Math.random() * 4 + 1}px`,
+              height: `${Math.random() * 4 + 1}px`,
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animation: `float ${Math.random() * 10 + 10}s linear infinite`,
+              opacity: Math.random() * 0.5 + 0.3,
+            }}
+          />
         ))}
-      </group>
-    </>
-  );
-};
+      </div>
 
-// Core Orb component with glassmorphism effect
-const CoreOrb = ({ isHovered, isActive, onClick }) => {
-  const orbRef = useRef<THREE.Mesh>(null);
-  const innerOrbRef = useRef<THREE.Mesh>(null);
-  
-  // Colors for the orb
-  const outerColor = new Color('#60a5fa');
-  const innerColor = new Color('#a78bfa');
-  
-  useFrame(({ clock }) => {
-    if (!orbRef.current || !innerOrbRef.current) return;
-    
-    // Gentle wobble animation
-    const t = clock.getElapsedTime();
-    
-    // Animate based on interaction state
-    const pulseSpeed = isActive ? 2 : isHovered ? 1.5 : 1;
-    const pulseStrength = isActive ? 0.1 : isHovered ? 0.05 : 0.02;
-    
-    // Apply animations
-    orbRef.current.scale.setScalar(1 + Math.sin(t * pulseSpeed) * pulseStrength);
-    innerOrbRef.current.scale.setScalar(1 + Math.cos(t * pulseSpeed * 1.3) * pulseStrength * 1.2);
-    
-    // Rotate inner orb in opposite direction
-    innerOrbRef.current.rotation.y = -t * 0.2;
-    innerOrbRef.current.rotation.z = Math.sin(t * 0.2) * 0.1;
-  });
-  
-  return (
-    <group onClick={onClick}>
-      {/* Outer orb with distortion */}
-      <mesh ref={orbRef}>
-        <sphereGeometry args={[1.8, 64, 64]} />
-        <MeshDistortMaterial
-          color={outerColor}
-          distort={0.2}
-          speed={2}
-          transparent
-          opacity={0.7}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-      
-      {/* Inner orb with wobble */}
-      <mesh ref={innerOrbRef}>
-        <sphereGeometry args={[1.2, 64, 64]} />
-        <MeshWobbleMaterial
-          color={innerColor}
-          factor={0.4}
-          speed={2}
-          transparent
-          opacity={0.8}
-          metalness={0.9}
-          roughness={0.1}
-        />
-      </mesh>
-    </group>
-  );
-};
-
-// Labels for the dual AI system
-const DualAILabels = ({ isActive }) => {
-  const horizontalRef = useRef<THREE.Group>(null);
-  const verticalRef = useRef<THREE.Group>(null);
-  
-  useFrame(({ clock }) => {
-    if (!horizontalRef.current || !verticalRef.current) return;
-    
-    // Floating animation
-    const t = clock.getElapsedTime();
-    horizontalRef.current.position.y = Math.sin(t * 0.5) * 0.1;
-    verticalRef.current.position.y = Math.cos(t * 0.5) * 0.1;
-    
-    // Opacity pulsing when active
-    if (isActive) {
-      const pulse = (Math.sin(t * 2) * 0.2 + 0.8);
-      horizontalRef.current.scale.setScalar(pulse);
-      verticalRef.current.scale.setScalar(pulse);
-    }
-  });
-  
-  return (
-    <>
-      {/* Horizontal AI Label */}
-      <Billboard
-        ref={horizontalRef}
-        position={[2.5, 0, 0]}
-        follow={true}
-        lockX={false}
-        lockY={false}
-        lockZ={false}
+      {/* Orbital rings */}
+      <div 
+        className={`absolute w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-blue-400/50
+          ${isActive ? 'animate-spin-slow-reverse' : 'animate-spin-slow'}`}
+        style={{
+          transform: 'rotateX(70deg)',
+          transformStyle: 'preserve-3d',
+        }}
       >
-        <Text
-          fontSize={0.2}
-          color="#60a5fa"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.01}
-          outlineColor="#000000"
+        {/* Ring particles */}
+        {Array.from({ length: 20 }).map((_, i) => {
+          const angle = (i / 20) * Math.PI * 2;
+          const x = Math.cos(angle) * 32;
+          const y = Math.sin(angle) * 32;
+          return (
+            <div
+              key={i}
+              className="absolute w-1.5 h-1.5 rounded-full bg-blue-400"
+              style={{
+                left: `calc(50% + ${x}rem)`,
+                top: `calc(50% + ${y}rem)`,
+                animation: `pulse-subtle ${Math.random() * 2 + 2}s infinite ease-in-out`,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      <div 
+        className={`absolute w-56 h-56 md:w-72 md:h-72 rounded-full border-2 border-purple-400/50
+          ${isActive ? 'animate-spin-slow' : 'animate-spin-slow-reverse'}`}
+      >
+        {/* Ring particles */}
+        {Array.from({ length: 15 }).map((_, i) => {
+          const angle = (i / 15) * Math.PI * 2;
+          const x = Math.cos(angle) * 28;
+          const y = Math.sin(angle) * 28;
+          return (
+            <div
+              key={i}
+              className="absolute w-1.5 h-1.5 rounded-full bg-purple-400"
+              style={{
+                left: `calc(50% + ${x}rem)`,
+                top: `calc(50% + ${y}rem)`,
+                animation: `pulse-subtle ${Math.random() * 2 + 2}s infinite ease-in-out`,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Core orb */}
+      <motion.div
+        className={`relative w-40 h-40 md:w-60 md:h-60 rounded-full cursor-pointer
+          ${isActive ? 'animate-glow' : isHovered ? 'animate-pulse-subtle' : ''}`}
+        animate={{
+          scale: isActive ? [1, 1.05, 1] : isHovered ? [1, 1.03, 1] : 1,
+        }}
+        transition={{
+          duration: isActive ? 2 : isHovered ? 3 : 0,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={() => setIsActive(!isActive)}
+      >
+        {/* Outer orb layer */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 opacity-70 animate-pulse-subtle" />
+        
+        {/* Middle layer with blur effect */}
+        <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 opacity-80 backdrop-blur-md animate-float" />
+        
+        {/* Inner core */}
+        <div className="absolute inset-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-700 animate-pulse-reverse">
+          {/* Light reflections */}
+          <div className="absolute top-1/4 left-1/4 w-1/4 h-1/4 rounded-full bg-white/30 blur-sm"></div>
+          <div className="absolute bottom-1/3 right-1/3 w-1/6 h-1/6 rounded-full bg-white/20 blur-sm"></div>
+        </div>
+        
+        {/* Center glow */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white font-bold text-xl md:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+            LUMI AI
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Horizontal AI Label */}
+      <div className="absolute right-1/4 top-1/2 transform translate-x-1/2 -translate-y-1/2">
+        <motion.div
+          className="text-blue-400 font-bold text-sm md:text-base"
+          animate={{ y: isActive ? [0, -5, 0] : 0 }}
+          transition={{ duration: 2, repeat: isActive ? Infinity : 0, ease: "easeInOut" }}
         >
           HORIZONTAL AI
-        </Text>
-      </Billboard>
-      
+        </motion.div>
+      </div>
+
       {/* Vertical AI Label */}
-      <Billboard
-        ref={verticalRef}
-        position={[0, 2.5, 0]}
-        follow={true}
-        lockX={false}
-        lockY={false}
-        lockZ={false}
-      >
-        <Text
-          fontSize={0.2}
-          color="#a78bfa"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.01}
-          outlineColor="#000000"
+      <div className="absolute left-1/2 top-1/4 transform -translate-x-1/2 -translate-y-1/2">
+        <motion.div
+          className="text-purple-400 font-bold text-sm md:text-base"
+          animate={{ y: isActive ? [0, -5, 0] : 0 }}
+          transition={{ duration: 2, repeat: isActive ? Infinity : 0, ease: "easeInOut" }}
         >
           VERTICAL AI
-        </Text>
-      </Billboard>
-    </>
-  );
-};
+        </motion.div>
+      </div>
 
-// Main scene component
-const OrbScene = () => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isActive, setIsActive] = useState(false);
-  
-  const handleClick = () => {
-    setIsActive(!isActive);
-  };
-  
-  return (
-    <>
-      {/* Environment and lighting */}
-      <ambientLight intensity={0.2} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <pointLight position={[-10, -10, -10]} color="#a78bfa" intensity={0.5} />
-      
-      {/* Particles background */}
-      <Particles count={3000} radius={5} />
-      
-      {/* Orbital rings representing dual AI */}
-      <OrbitalRing 
-        radius={2.5} 
-        thickness={0.03} 
-        color={new Color('#60a5fa')} 
-        rotation={[Math.PI/2, 0, 0]} 
-        speed={0.1}
-        particleCount={40}
-      />
-      <OrbitalRing 
-        radius={2.2} 
-        thickness={0.03} 
-        color={new Color('#a78bfa')} 
-        rotation={[0, 0, 0]} 
-        speed={-0.15}
-        particleCount={30}
-      />
-      
-      {/* Core orb */}
-      <CoreOrb 
-        isHovered={isHovered} 
-        isActive={isActive} 
-        onClick={handleClick}
-      />
-      
-      {/* Labels */}
-      <DualAILabels isActive={isActive} />
-      
-      {/* Post-processing effects */}
-      <EffectComposer>
-        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
-        <ChromaticAberration offset={[0.0005, 0.0005]} />
-      </EffectComposer>
-      
-      {/* Controls */}
-      <OrbitControls 
-        enableZoom={false} 
-        enablePan={false}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI * 3/4}
-        rotateSpeed={0.5}
-        onPointerOver={() => setIsHovered(true)}
-        onPointerOut={() => setIsHovered(false)}
-      />
-    </>
-  );
-};
-
-// Main exported component with canvas
-export default function Lumi3DOrb() {
-  return (
-    <div className="w-full h-full min-h-[300px] md:min-h-[400px] relative">
-      <Canvas dpr={[1, 2]} camera={{ position: [0, 0, 6], fov: 45 }}>
-        <OrbScene />
-      </Canvas>
-      
       {/* Optional UI overlay */}
       <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-white/50 pointer-events-none">
         Click the orb to activate
       </div>
+
+      {/* Add these animation keyframes to globals.css */}
+      <style jsx global>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes spin-slow-reverse {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(-360deg); }
+        }
+        
+        @keyframes pulse-reverse {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 1; }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 20s linear infinite;
+        }
+        
+        .animate-spin-slow-reverse {
+          animation: spin-slow-reverse 25s linear infinite;
+        }
+        
+        .animate-pulse-reverse {
+          animation: pulse-reverse 3s infinite ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
