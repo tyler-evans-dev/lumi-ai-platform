@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers';
 import { useDualAI } from '@/components/providers';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import DetailView from '@/components/DetailView';
+import { HorizontalData, VerticalAnalysis } from '@/types/supabase';
 import { 
   User, 
   LogOut, 
@@ -20,7 +22,8 @@ import {
   ChevronLeft,
   Maximize,
   Minimize,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 // Dynamically import the 3D orb component with SSR disabled to avoid hydration issues
@@ -57,6 +60,8 @@ export default function Home() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [detailViewType, setDetailViewType] = useState<'horizontal' | 'vertical' | null>(null);
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
 
   // Redirect to login if not authenticated and not using mock data
   useEffect(() => {
@@ -83,6 +88,25 @@ export default function Home() {
   const toggleLeftPanel = () => setIsLeftPanelCollapsed(!isLeftPanelCollapsed);
   const toggleRightPanel = () => setIsRightPanelCollapsed(!isRightPanelCollapsed);
   const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+
+  // Handle item selection
+  const handleHorizontalItemClick = (item: HorizontalData) => {
+    setSelectedHorizontalItem(item);
+    setDetailViewType('horizontal');
+    setIsDetailViewOpen(true);
+  };
+
+  const handleVerticalItemClick = (item: VerticalAnalysis) => {
+    setSelectedVerticalItem(item);
+    setDetailViewType('vertical');
+    setIsDetailViewOpen(true);
+  };
+
+  // Close detail view
+  const closeDetailView = () => {
+    setIsDetailViewOpen(false);
+    // Keep the selected item but close the view
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
@@ -221,7 +245,7 @@ export default function Home() {
                         ? 'bg-blue-500/20 border border-blue-500/50'
                         : 'bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
-                    onClick={() => setSelectedHorizontalItem(item)}
+                    onClick={() => handleHorizontalItemClick(item)}
                   >
                     <div className="flex items-center gap-2">
                       {item.entity_type === 'company' ? (
@@ -347,7 +371,7 @@ export default function Home() {
                         ? 'bg-purple-500/20 border border-purple-500/50'
                         : 'bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
-                    onClick={() => setSelectedVerticalItem(item)}
+                    onClick={() => handleVerticalItemClick(item)}
                   >
                     <div className="flex items-center gap-2">
                       <Brain size={16} className="text-purple-400" />
@@ -374,6 +398,45 @@ export default function Home() {
           </div>
         </aside>
       </main>
+
+      {/* Detail View Modal */}
+      <AnimatePresence>
+        {isDetailViewOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+          >
+            <div 
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={closeDetailView}
+            ></div>
+            
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-5xl h-[85vh] bg-gradient-to-b from-gray-900 to-black rounded-xl border border-white/10 overflow-hidden shadow-xl z-10"
+            >
+              <button 
+                onClick={closeDetailView}
+                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="h-full">
+                <DetailView 
+                  item={detailViewType === 'horizontal' ? selectedHorizontalItem : selectedVerticalItem}
+                  type={detailViewType}
+                  onClose={closeDetailView}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
