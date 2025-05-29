@@ -3,25 +3,170 @@
 @tailwind utilities;
 
 :root {
+  /* Base colors */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  
+  /* Lumi AI Platform Theme Colors */
+  --lumi-blue: #60a5fa;
+  --lumi-purple: #a78bfa;
+  --lumi-blue-dark: #3b82f6;
+  --lumi-purple-dark: #8b5cf6;
+  
+  /* Glassmorphism variables */
+  --glass-bg: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
+  --glass-blur: 12px;
+  
+  /* Gradient colors */
+  --gradient-blue-start: #60a5fa;
+  --gradient-blue-end: #3b82f6;
+  --gradient-purple-start: #a78bfa;
+  --gradient-purple-end: #8b5cf6;
+  
+  /* Animation durations */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+}
+
+/* Light theme overrides - not used by default */
+.light-theme {
   --background: #ffffff;
   --foreground: #171717;
+  --glass-bg: rgba(255, 255, 255, 0.3);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-highlight: rgba(0, 0, 0, 0.05);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Base styles */
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-geist-sans);
+}
+
+code, pre {
+  font-family: var(--font-geist-mono);
+}
+
+/* Glassmorphism components */
+@layer components {
+  .glass-panel {
+    @apply bg-black/30 backdrop-blur-xl border border-white/10 rounded-xl;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border-color: var(--glass-border);
+  }
+  
+  .glass-button {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-lg 
+    hover:bg-white/10 transition-colors duration-300;
+  }
+  
+  .glass-input {
+    @apply bg-white/5 border border-white/10 rounded-md px-3 py-2
+    focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200;
+  }
+  
+  .horizontal-panel {
+    @apply bg-blue-500/10 backdrop-blur-md border border-blue-500/30 rounded-lg;
+  }
+  
+  .vertical-panel {
+    @apply bg-purple-500/10 backdrop-blur-md border border-purple-500/30 rounded-lg;
+  }
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500;
+}
+
+/* Animations */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(96, 165, 250, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(167, 139, 250, 0.5); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float 6s infinite ease-in-out;
+}
+
+.animate-glow {
+  animation: glow 4s infinite ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--lumi-blue), var(--lumi-purple));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, var(--lumi-blue-dark), var(--lumi-purple-dark));
+}
+
+/* Auth component styling */
+.auth-container {
+  @apply w-full;
+}
+
+.auth-container button {
+  @apply transition-all duration-200 font-medium;
+}
+
+.auth-container input {
+  @apply bg-white/5 border border-white/10 rounded-md px-3 py-2 
+  focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200
+  text-white placeholder:text-white/50;
+}
+
+.auth-container label {
+  @apply text-sm text-gray-300 mb-1 block;
+}
+
+/* Utility classes */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  .bg-mesh-gradient {
+    background-image: 
+      radial-gradient(at 40% 20%, rgba(96, 165, 250, 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(167, 139, 250, 0.1) 0px, transparent 50%),
+      radial-gradient(at 20% 80%, rgba(96, 165, 250, 0.1) 0px, transparent 50%);
   }
 }
