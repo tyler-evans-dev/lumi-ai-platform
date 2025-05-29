@@ -1,27 +1,19 @@
 'use client';
 
-import { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef, useState, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Canvas } from '@react-three/fiber';
 import {
   OrbitControls,
-  Sphere,
   MeshDistortMaterial,
   MeshWobbleMaterial,
-  MeshReflectorMaterial,
-  useTexture,
-  Text,
-  Trail,
   PointMaterial,
   Points,
   Billboard,
-  useGLTF,
-  Environment,
-  PerspectiveCamera
+  Text
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { Vector3, Color, MathUtils } from 'three';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Vector3, Color } from 'three';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 
 // Generate random particles for the orb
@@ -73,8 +65,17 @@ const Particles = ({ count = 2000, radius = 2 }) => {
     pointsRef.current.scale.set(scale, scale, scale);
   });
   
+  // Create a buffer geometry with attributes
+  const geometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    return geometry;
+  }, [positions, colors, sizes]);
+  
   return (
-    <Points ref={pointsRef} limit={count}>
+    <points ref={pointsRef} geometry={geometry}>
       <PointMaterial
         transparent
         vertexColors
@@ -83,10 +84,7 @@ const Particles = ({ count = 2000, radius = 2 }) => {
         depthWrite={false}
         blending={THREE.AdditiveBlending}
       />
-      <buffer attach="geometry-position" array={positions} count={positions.length / 3} itemSize={3} />
-      <buffer attach="geometry-color" array={colors} count={colors.length / 3} itemSize={3} />
-      <buffer attach="geometry-size" array={sizes} count={sizes.length} itemSize={1} />
-    </Points>
+    </points>
   );
 };
 
@@ -180,7 +178,6 @@ const CoreOrb = ({ isHovered, isActive, onClick }) => {
     // Animate based on interaction state
     const pulseSpeed = isActive ? 2 : isHovered ? 1.5 : 1;
     const pulseStrength = isActive ? 0.1 : isHovered ? 0.05 : 0.02;
-    const distortionStrength = isActive ? 0.4 : isHovered ? 0.3 : 0.2;
     
     // Apply animations
     orbRef.current.scale.setScalar(1 + Math.sin(t * pulseSpeed) * pulseStrength);

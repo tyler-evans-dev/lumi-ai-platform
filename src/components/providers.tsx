@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { Session, User } from '@supabase/supabase-js';
 import { supabaseClient } from '@/lib/supabase';
+import { HorizontalData, VerticalAnalysis } from '@/types/supabase';
 
 // Authentication Context
 type AuthContextType = {
@@ -24,14 +25,14 @@ export const useAuth = () => useContext(AuthContext);
 
 // Dual AI Context
 type DualAIContextType = {
-  horizontalData: any[] | null;
-  verticalAnalysis: any[] | null;
+  horizontalData: HorizontalData[] | null;
+  verticalAnalysis: VerticalAnalysis[] | null;
   isHorizontalLoading: boolean;
   isVerticalLoading: boolean;
-  selectedHorizontalItem: any | null;
-  selectedVerticalItem: any | null;
-  setSelectedHorizontalItem: (item: any | null) => void;
-  setSelectedVerticalItem: (item: any | null) => void;
+  selectedHorizontalItem: HorizontalData | null;
+  selectedVerticalItem: VerticalAnalysis | null;
+  setSelectedHorizontalItem: (item: HorizontalData | null) => void;
+  setSelectedVerticalItem: (item: VerticalAnalysis | null) => void;
   refreshHorizontalData: () => Promise<void>;
   refreshVerticalData: () => Promise<void>;
 };
@@ -59,12 +60,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Dual AI state
-  const [horizontalData, setHorizontalData] = useState<any[] | null>(null);
-  const [verticalAnalysis, setVerticalAnalysis] = useState<any[] | null>(null);
+  const [horizontalData, setHorizontalData] = useState<HorizontalData[] | null>(null);
+  const [verticalAnalysis, setVerticalAnalysis] = useState<VerticalAnalysis[] | null>(null);
   const [isHorizontalLoading, setIsHorizontalLoading] = useState(false);
   const [isVerticalLoading, setIsVerticalLoading] = useState(false);
-  const [selectedHorizontalItem, setSelectedHorizontalItem] = useState<any | null>(null);
-  const [selectedVerticalItem, setSelectedVerticalItem] = useState<any | null>(null);
+  const [selectedHorizontalItem, setSelectedHorizontalItem] = useState<HorizontalData | null>(null);
+  const [selectedVerticalItem, setSelectedVerticalItem] = useState<VerticalAnalysis | null>(null);
 
   // Initialize auth state
   useEffect(() => {
@@ -100,8 +101,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     await supabaseClient.auth.signOut();
   };
 
-  // Refresh horizontal data
-  const refreshHorizontalData = async () => {
+  // Refresh horizontal data - using useCallback to memoize the function
+  const refreshHorizontalData = useCallback(async () => {
     if (!user) return;
     
     setIsHorizontalLoading(true);
@@ -113,16 +114,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setHorizontalData(data);
+      setHorizontalData(data as HorizontalData[]);
     } catch (error) {
       console.error('Error fetching horizontal data:', error);
     } finally {
       setIsHorizontalLoading(false);
     }
-  };
+  }, [user]);
 
-  // Refresh vertical analysis
-  const refreshVerticalData = async () => {
+  // Refresh vertical analysis - using useCallback to memoize the function
+  const refreshVerticalData = useCallback(async () => {
     if (!user) return;
     
     setIsVerticalLoading(true);
@@ -134,13 +135,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setVerticalAnalysis(data);
+      setVerticalAnalysis(data as VerticalAnalysis[]);
     } catch (error) {
       console.error('Error fetching vertical analysis:', error);
     } finally {
       setIsVerticalLoading(false);
     }
-  };
+  }, [user]);
 
   // Load initial data when user changes
   useEffect(() => {
@@ -151,7 +152,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       setHorizontalData(null);
       setVerticalAnalysis(null);
     }
-  }, [user]);
+  }, [user, refreshHorizontalData, refreshVerticalData]);
 
   // When horizontal item changes, update vertical data if needed
   useEffect(() => {
@@ -159,7 +160,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       // Optionally fetch related vertical analyses for the selected horizontal item
       const fetchRelatedVerticalAnalyses = async () => {
         try {
-          const { data, error } = await supabaseClient
+          const { error } = await supabaseClient
             .from('vertical_analysis')
             .select('*')
             .eq('horizontal_data_id', selectedHorizontalItem.id)

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Database, Json } from '@/types/supabase';
 
 // Environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -49,7 +49,7 @@ export type HorizontalAIData = {
   user_id: string;
   company_name?: string;
   contact_name?: string;
-  enriched_data: any; // From Exa.ai
+  enriched_data: Json; // From Exa.ai
   created_at: string;
   updated_at: string;
 };
@@ -58,7 +58,7 @@ export type VerticalAIData = {
   id: string;
   user_id: string;
   horizontal_data_id: string; // Reference to horizontal data
-  analysis_results: any; // From CrewAI
+  analysis_results: Json; // From CrewAI
   created_at: string;
   updated_at: string;
 };
